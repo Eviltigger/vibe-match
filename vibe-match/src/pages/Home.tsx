@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { QUESTIONS, RESULTS } from "../constants/questions";
 
 type Grade = keyof typeof RESULTS;
 
 const Home: React.FC = () => {
-  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState<"welcome" | "test" | "result">("welcome");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [masterAnswers, setMasterAnswers] = useState<number[] | null>(null);
   const [shareLink, setShareLink] = useState("");
 
+  const readDataParam = () => {
+    const hash = window.location.hash;
+    const hashQueryIndex = hash.indexOf("?");
+    const hashQuery = hashQueryIndex >= 0 ? hash.slice(hashQueryIndex + 1) : "";
+    const search = hashQuery || window.location.search.slice(1);
+    const params = new URLSearchParams(search);
+    return params.get("data");
+  };
+
   useEffect(() => {
-    const data = searchParams.get("data");
+    const data = readDataParam();
     if (data) {
       try {
         const decoded = data.split("").map(Number);
@@ -24,7 +31,7 @@ const Home: React.FC = () => {
         console.error("Failed to decode master answers", e);
       }
     }
-  }, [searchParams]);
+  }, []);
 
   const handleStart = () => {
     setCurrentStep("test");
@@ -45,8 +52,8 @@ const Home: React.FC = () => {
         // Master mode: generate link
         const dataStr = newAnswers.join("");
         const url = new URL(window.location.href);
-        url.searchParams.set("data", dataStr);
-        setShareLink(url.toString());
+        const baseUrl = `${url.origin}${url.pathname}`;
+        setShareLink(`${baseUrl}#/?data=${dataStr}`);
       }
     }
   };
@@ -112,7 +119,16 @@ const Home: React.FC = () => {
       "人生观": "bg-white",
     };
 
+    const dimensionTextColors: Record<string, string> = {
+      "善恶观": "text-purple-400",
+      "价值观": "text-blue-300",
+      "金钱观": "text-emerald-300",
+      "消费观": "text-orange-300",
+      "人生观": "text-zinc-100",
+    };
+
     const currentColor = dimensionColors[q.dimension] || "bg-purple-500";
+    const currentTextColor = dimensionTextColors[q.dimension] || "text-purple-400";
 
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6">
@@ -128,7 +144,7 @@ const Home: React.FC = () => {
                 </svg>
                 上一题
               </button>
-              <span className="font-medium" style={{ color: currentColor.replace('bg-', 'text-') }}>维度：{q.dimension}</span>
+              <span className={`font-medium ${currentTextColor}`}>维度：{q.dimension}</span>
               <span>{currentQuestionIndex + 1} / {QUESTIONS.length}</span>
             </div>
             <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
